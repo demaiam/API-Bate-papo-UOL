@@ -29,7 +29,7 @@ app.post("/participants", async (req, res) => {
     const schemaParticipant = Joi.object({
         name: Joi.string().required()
     });
-    
+
     const validation = schemaParticipant.validate(req.body, { abortEarly: false });
 
     if (validation.error) {
@@ -81,7 +81,6 @@ app.post("/messages", async (req, res) => {
     if (nameSearch) return res.status(404).send("User doesn't exist");
 
     const schemaMessage = Joi.object({
-        from: from,
         to: Joi.string().required(),
         text: Joi.string().required(),
         type: Joi.string().valid('message', 'private_message').required()
@@ -118,7 +117,7 @@ app.get("/messages", async (req, res) => {
     const user = req.headers.user;
     
     try {
-        const messages = await db.collection("messages").find({ $or: [{ to: 'Todos' }, { to: user }, { from: user }] }).toArray();
+        const messages = await db.collection("messages").find({ $or: [{ to: 'Todos' }, { to: user }, { from: user }] }).limit(limit).toArray();
         res.send(messages).status(201);
     } catch (err) {
         res.status(500).send(err.message);
