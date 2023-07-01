@@ -13,20 +13,13 @@ dotenv.config();
 const mongoClient = new MongoClient(process.env.DATABASE_URL);
 
 try {
-	await mongoClient.connect() // top level await
-	console.log("MongoDB connected")
+	await mongoClient.connect();
+	console.log("MongoDB connected");
 } catch (err) {
-	(err) => console.log(err.message)
+	(err) => console.log(err.message);
 }
 
 const db = mongoClient.db();
-
-/*const participants = [
-    {name: 'João', lastStatus: 12313123}
-];
-const messages = [
-    {from: 'João', to: 'Todos', text: 'oi galera', type: 'message', time: '20:04:37'}
-];*/
 
 
 app.post("/participants", async (req, res) => {
@@ -69,24 +62,25 @@ app.post("/participants", async (req, res) => {
 app.get("/participants", async (req, res) => {
     try {
         const participants = await db.collection("participants").find().toArray();
-        res.send(participants);
+        res.send(participants).status(201);
     } catch (err) {
         res.status(500).send(err.message);
     }
 });
+
 
 app.post("/messages", async (req, res) => {
     const { to, text, type } = req.body;
     const { from } = req.params;
 
     const nameSearch = await db.collection("participants").findOne({ $or: [{ name: from }, { name: to }] });
-    if (nameSearch) return resname.status(404).send("User doesn't exist");
+    if (nameSearch) return res.status(404).send("User doesn't exist");
 
     const schemaMessage = Joi.object({
         from: from,
         to: Joi.string().required(),
         text: Joi.string().required(),
-        type: Joi.string().valid('message', 'private_message').required,
+        type: Joi.string().required().valid('message', 'private_message')
     });
 
     const validation = schemaMessage.validate(req.body, { abortEarly: false });
@@ -112,6 +106,7 @@ app.post("/messages", async (req, res) => {
     }
 });
 
+
 app.get("/messages", async (req, res) => {
     const limit = parseInt(req.query.limit);
     if (limit < 1) return res.status(422).send("Invalid limit");
@@ -120,11 +115,12 @@ app.get("/messages", async (req, res) => {
     
     try {
         const messages = await db.collection("messages").find({ $or: [{ to: 'Todos' }, { to: user }, { from: user }] }).toArray();
-        res.send(messages);
+        res.send(messages).status(201);
     } catch (err) {
         res.status(500).send(err.message);
     }
 });
+
 
 app.post("/status", async (req, res) => {
     const user = req.headers.user;
