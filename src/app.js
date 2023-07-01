@@ -30,9 +30,9 @@ app.post("/participants", async (req, res) => {
         name: Joi.string().required()
     });
 
-    const validation = schemaParticipant.validate(req.body, { abortEarly: false });
+    const validateName = schemaParticipant.validate(req.body, { abortEarly: false });
 
-    if (validation.error) {
+    if (validateName.error) {
         const errors = validation.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
@@ -74,11 +74,23 @@ app.get("/participants", async (req, res) => {
 
 
 app.post("/messages", async (req, res) => {
-    const { to, text, type } = req.body;
-    const { from } = req.params;
+    const { user } = req.params;
 
-    const nameSearch = await db.collection("participants").findOne({ $or: [{ name: from }, { name: to }] });
-    if (nameSearch) return res.status(404).send("User doesn't exist");
+    const schemaUser = Joi.object({
+        user: Joi.string().required()
+    })
+
+    const validateUser = schemaUser(req.params, { abortEarly: false });
+
+    if (validateUser.error) {
+        const errors = validation.error.details.map(detail => detail.message);
+        return res.status(422).send(errors);
+    }
+
+    const searchUser = await db.collection("participants").findOne({ $or: [{ from: user }, { to: user }] });
+    if (searchUser) return res.status(422).send("User doesn't exist");
+
+    const { to, text, type } = req.body;
 
     const schemaMessage = Joi.object({
         to: Joi.string().required(),
@@ -86,16 +98,16 @@ app.post("/messages", async (req, res) => {
         type: Joi.string().valid('message', 'private_message').required()
     });
 
-    const validation = schemaMessage.validate(req.body, { abortEarly: false });
+    const validateMessage = schemaMessage.validate(req.body, { abortEarly: false });
 
-    if (validation.error) {
+    if (validateMessage.error) {
         const errors = validation.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
 
     try {
         const newMessage = {
-            from: from,
+            from: user,
             to: to,
             text: text,
             type: type,
@@ -111,13 +123,34 @@ app.post("/messages", async (req, res) => {
 
 
 app.get("/messages", async (req, res) => {
-    const limit = parseInt(req.query.limit);
-    if (limit < 1) return res.status(422).send("Invalid limit");
+    const { limit } = parseInt(req.query.limit);
 
-    const user = req.headers.user;
+    const schemaLimit = Joi.object({
+        limit: Joi.number().integer().min(1)
+    });
+
+    const validateLimit = schemaLimit(req.query.limit, { abortEarly: false });
+
+    if (validateLimit.error) {
+        const errors = validation.error.details.map(detail => detail.message);
+        return res.status(422).send(errors);
+    }
+
+    const { user } = req.headers.user;
+
+    const schemaUser = Joi.object({
+        user: Joi.string().required()
+    });
+
+    const validateUser = schemaUser.validate(req.headers.user, { abortEarly: false });
+
+    if (validateUser.error) {
+        const errors = validation.error.details.map(detail => detail.message);
+        return res.status(422).send(errors);
+    }
     
     try {
-        const messages = await db.collection("messages").find({ $or: [{ to: 'Todos' }, { to: user }, { from: user }] }).limit(limit).toArray();
+        const messages = await db.collection("messages").find({ $or: [{ from: user }, { to: user }, { type: 'message' }] }).limit(limit).toArray();
         res.send(messages).status(201);
     } catch (err) {
         res.status(500).send(err.message);
@@ -127,7 +160,17 @@ app.get("/messages", async (req, res) => {
 
 app.post("/status", async (req, res) => {
     const user = req.headers.user;
-    if (!user) return res.status(404).send("Invalid header");
+    
+    const schemaUser = Joi.object({
+        user: Joi.string().required()
+    });
+
+    const validateUser = schemaUser.validate(req.headers.user, { abortEarly: false });
+
+    if (validateUser.error) {
+        const errors = validation.error.details.map(detail => detail.message);
+        return res.status(422).send(errors);
+    }
 
     const nameSearch = await db.collection("participants").findOne({ name: user });
     if (!nameSearch) return res.status(404).send("User doesn't exist");
