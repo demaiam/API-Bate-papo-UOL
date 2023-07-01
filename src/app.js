@@ -1,11 +1,12 @@
 import express from "express";
 import cors from "cors";
-import { MongoClient, ObjectId } from "mongodb";
+import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import Joi from "joi";
 import dayjs from "dayjs";
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 dotenv.config();
@@ -25,7 +26,10 @@ const db = mongoClient.db();
 app.post("/participants", async (req, res) => {
     const { name } = req.body;
 
-    const schemaParticipant = Joi.string().required;
+    const schemaParticipant = Joi.object({
+        name: Joi.string().required()
+    });
+    
     const validation = schemaParticipant.validate(req.body, { abortEarly: false });
 
     if (validation.error) {
@@ -80,7 +84,7 @@ app.post("/messages", async (req, res) => {
         from: from,
         to: Joi.string().required(),
         text: Joi.string().required(),
-        type: Joi.string().required().valid('message', 'private_message')
+        type: Joi.string().valid('message', 'private_message').required()
     });
 
     const validation = schemaMessage.validate(req.body, { abortEarly: false });
