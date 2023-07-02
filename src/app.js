@@ -71,14 +71,14 @@ app.get("/participants", async (req, res) => {
 
 
 app.post("/messages", async (req, res) => {
-    const { from } = req.headers.user;
+    const { from } = req.headers;
     const { to, text, type } = req.body;
 
     const schemaUser = Joi.object({
         from: Joi.string().required()
     });
 
-    const validateUser = schemaUser.validate(req.headers.user, { abortEarly: false });
+    const validateUser = schemaUser.validate(req.headers, { abortEarly: false });
 
     if (validateUser.error) {
         const errors = validateUser.error.details.map(detail => detail.message);
@@ -91,7 +91,7 @@ app.post("/messages", async (req, res) => {
     const schemaMessage = Joi.object({
         to: Joi.string().required(),
         text: Joi.string().required(),
-        type: Joi.string().valid('message', 'private_message')
+        type: Joi.string().valid('message', 'private_message').required()
     });
 
     const validateMessage = schemaMessage.validate(req.body, { abortEarly: false });
@@ -117,14 +117,14 @@ app.post("/messages", async (req, res) => {
 
 
 app.get("/messages", async (req, res) => {
-    const { user } = req.headers.user;
-    const { limit } = parseInt(req.query.limit);
+    const { user } = req.headers;
+    const { limit } = parseInt(req.query);
 
     const schemaUser = Joi.object({
         user: Joi.string().required()
     });
 
-    const validateUser = schemaUser.validate(req.headers.user, { abortEarly: false });
+    const validateUser = schemaUser.validate(req.headers, { abortEarly: false });
 
     if (validateUser.error) {
         const errors = validateUser.error.details.map(detail => detail.message);
@@ -135,7 +135,7 @@ app.get("/messages", async (req, res) => {
         limit: Joi.number().integer().min(1)
     });
 
-    const validateLimit = schemaLimit(req.query.limit, { abortEarly: false });
+    const validateLimit = schemaLimit(req.query, { abortEarly: false });
 
     if (validateLimit.error) {
         const errors = validateLimit.error.details.map(detail => detail.message);
@@ -152,13 +152,13 @@ app.get("/messages", async (req, res) => {
 
 
 app.post("/status", async (req, res) => {
-    const { user } = req.headers.user;
+    const { user } = req.headers;
     
     const schemaUser = Joi.object({
         user: Joi.string().required()
     });
 
-    const validateUser = schemaUser.validate(req.headers.user, { abortEarly: false });
+    const validateUser = schemaUser.validate(req.headers, { abortEarly: false });
 
     if (validateUser.error) {
         const errors = validateUser.error.details.map(detail => detail.message);
