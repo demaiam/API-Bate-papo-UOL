@@ -71,11 +71,11 @@ app.get("/participants", async (req, res) => {
 
 
 app.post("/messages", async (req, res) => {
-    const { user } = req.headers.user;
+    const { from } = req.headers.user;
     const { to, text, type } = req.body;
 
     const schemaUser = Joi.object({
-        user: Joi.string().required()
+        from: Joi.string().required()
     });
 
     const validateUser = schemaUser.validate(req.headers.user, { abortEarly: false });
@@ -85,13 +85,13 @@ app.post("/messages", async (req, res) => {
         return res.status(422).send(errors);
     }
 
-    const searchUser = await db.collection("participants").findOne({ name: user });
-    if (searchUser) return res.status(422).send("User doesn't exist");
+    const searchUser = await db.collection("participants").findOne({ name: from });
+    if (!searchUser) return res.status(422).send("User doesn't exist");
 
     const schemaMessage = Joi.object({
         to: Joi.string().required(),
         text: Joi.string().required(),
-        type: Joi.string().valid('message', 'private_message').required()
+        type: Joi.string().valid('message', 'private_message')
     });
 
     const validateMessage = schemaMessage.validate(req.body, { abortEarly: false });
