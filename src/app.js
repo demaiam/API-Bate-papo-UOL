@@ -27,7 +27,7 @@ app.post("/participants", async (req, res) => {
     const { name } = req.body;
 
     const schemaName = Joi.object({
-        name: Joi.string().required()
+        name: Joi.string().min(1).required()
     });
 
     const validateName = schemaName.validate(req.body, { abortEarly: false });
@@ -74,12 +74,23 @@ app.post("/messages", async (req, res) => {
     const { user } = req.params;
     const { to, text, type } = req.body;
 
+    const schemaUser = Joi.object({
+        user: Joi.string().min(1).required()
+    });
+
+    const validateUser = schemaUser.validate(req.params, { abortEarly: false });
+
+    if (validateUser.error) {
+        const errors = validation.error.details.map(detail => detail.message);
+        return res.status(422).send(errors);
+    }
+
     const searchUser = await db.collection("participants").findOne({ name: user });
     if (searchUser) return res.status(422).send("User doesn't exist");
 
     const schemaMessage = Joi.object({
-        to: Joi.string().required(),
-        text: Joi.string().required(),
+        to: Joi.string().min(1).required(),
+        text: Joi.string().min(1).required(),
         type: Joi.string().valid('message', 'private_message').required()
     });
 
@@ -110,7 +121,7 @@ app.get("/messages", async (req, res) => {
     const { limit } = parseInt(req.query.limit);
 
     const schemaUser = Joi.object({
-        user: Joi.string().required()
+        user: Joi.string().min(1).required()
     });
 
     const validateUser = schemaUser.validate(req.headers.user, { abortEarly: false });
@@ -143,9 +154,8 @@ app.get("/messages", async (req, res) => {
 app.post("/status", async (req, res) => {
     const { user } = req.headers.user;
     
-    /*
     const schemaUser = Joi.object({
-        user: Joi.string().required()
+        user: Joi.string().min(1).required()
     });
 
     const validateUser = schemaUser.validate(req.headers.user, { abortEarly: false });
@@ -154,7 +164,6 @@ app.post("/status", async (req, res) => {
         const errors = validation.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
-    */
 
     const nameSearch = await db.collection("participants").findOne({ name: user });
     if (!nameSearch) return res.status(404).send("User doesn't exist");
