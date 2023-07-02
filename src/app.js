@@ -103,7 +103,7 @@ app.post("/messages", async (req, res) => {
 
     try {
         await db.collection("messages").insertOne({
-            from: user,
+            from: from,
             to: to,
             text: text,
             type: type,
@@ -179,9 +179,9 @@ app.post("/status", async (req, res) => {
     }
 });
 
-/*
+
 setInterval(async () => {
-    const participants = await db.collection("participants").find().toArray;
+    const participants = await db.collection("participants").find().toArray();
     for (let i = 0; i < participants.length; i++) {
         if (participants[i].lastStatus > Date.now() - 10000) {
             await db.collection("participants").delete({ name: participants[i].name });
@@ -195,7 +195,7 @@ setInterval(async () => {
         }
     }
 }, 15000);
-*/
+
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
