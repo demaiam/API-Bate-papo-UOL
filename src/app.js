@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import dotenv from "dotenv";
 import Joi from "joi";
 import dayjs from "dayjs";
@@ -26,14 +26,14 @@ const db = mongoClient.db();
 app.post("/participants", async (req, res) => {
     const { name } = req.body;
 
-    const schemaName = Joi.object({
-        name: Joi.string().min(1).required()
+    const schemaName = Joi.object({ 
+        name: Joi.string().required() 
     });
 
     const validateName = schemaName.validate(req.body, { abortEarly: false });
 
     if (validateName.error) {
-        const errors = validation.error.details.map(detail => detail.message);
+        const errors = validateName.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
 
@@ -71,17 +71,17 @@ app.get("/participants", async (req, res) => {
 
 
 app.post("/messages", async (req, res) => {
-    const { user } = req.params;
+    const { user } = req.headers.user;
     const { to, text, type } = req.body;
 
     const schemaUser = Joi.object({
-        user: Joi.string().min(1).required()
+        user: Joi.string().required()
     });
 
-    const validateUser = schemaUser.validate(req.params, { abortEarly: false });
+    const validateUser = schemaUser.validate(req.headers.user, { abortEarly: false });
 
     if (validateUser.error) {
-        const errors = validation.error.details.map(detail => detail.message);
+        const errors = validateUser.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
 
@@ -89,15 +89,15 @@ app.post("/messages", async (req, res) => {
     if (searchUser) return res.status(422).send("User doesn't exist");
 
     const schemaMessage = Joi.object({
-        to: Joi.string().min(1).required(),
-        text: Joi.string().min(1).required(),
+        to: Joi.string().required(),
+        text: Joi.string().required(),
         type: Joi.string().valid('message', 'private_message').required()
     });
 
     const validateMessage = schemaMessage.validate(req.body, { abortEarly: false });
 
     if (validateMessage.error) {
-        const errors = validation.error.details.map(detail => detail.message);
+        const errors = validateMessage.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
 
@@ -121,13 +121,13 @@ app.get("/messages", async (req, res) => {
     const { limit } = parseInt(req.query.limit);
 
     const schemaUser = Joi.object({
-        user: Joi.string().min(1).required()
+        user: Joi.string().required()
     });
 
     const validateUser = schemaUser.validate(req.headers.user, { abortEarly: false });
 
     if (validateUser.error) {
-        const errors = validation.error.details.map(detail => detail.message);
+        const errors = validateUser.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
     
@@ -138,7 +138,7 @@ app.get("/messages", async (req, res) => {
     const validateLimit = schemaLimit(req.query.limit, { abortEarly: false });
 
     if (validateLimit.error) {
-        const errors = validation.error.details.map(detail => detail.message);
+        const errors = validateLimit.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
 
@@ -155,13 +155,13 @@ app.post("/status", async (req, res) => {
     const { user } = req.headers.user;
     
     const schemaUser = Joi.object({
-        user: Joi.string().min(1).required()
+        user: Joi.string().required()
     });
 
     const validateUser = schemaUser.validate(req.headers.user, { abortEarly: false });
 
     if (validateUser.error) {
-        const errors = validation.error.details.map(detail => detail.message);
+        const errors = validateUser.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
 
@@ -179,6 +179,23 @@ app.post("/status", async (req, res) => {
     }
 });
 
+/*
+setInterval(async () => {
+    const participants = await db.collection("participants").find().toArray;
+    for (let i = 0; i < participants.length; i++) {
+        if (participants[i].lastStatus > Date.now() - 10000) {
+            await db.collection("participants").delete({ name: participants[i].name });
+            await db.collection("messages").insertOne({
+                from: participants[i].name,
+                to: 'Todos',
+                text: 'sai da sala...',
+                type: 'status',
+                time: dayjs().format('HH:mm:ss')
+            });
+        }
+    }
+}, 15000);
+*/
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
