@@ -24,10 +24,10 @@ const db = mongoClient.db();
 
 
 app.post("/participants", async (req, res) => {
-    const { name } = req.body;
+    const { user } = req.body;
 
     const schemaName = Joi.object({ 
-        name: Joi.string().required() 
+        user: Joi.string().required() 
     });
 
     const validateName = schemaName.validate(req.body, { abortEarly: false });
@@ -38,16 +38,16 @@ app.post("/participants", async (req, res) => {
     }
 
     try {
-        const nameSearch = await db.collection("participants").findOne({ name: name });
+        const nameSearch = await db.collection("participants").findOne({ name: user });
         if (nameSearch) return res.status(409).send("User already exists");
 
         await db.collection("participants").insertOne({
-            name: name,
+            name: user,
             lastStatus: Date.now()
         });
 
         await db.collection("messages").insertOne({
-            from: name,
+            from: user,
             to: 'Todos',
             text: 'entra na sala...',
             type: 'status',
@@ -60,6 +60,7 @@ app.post("/participants", async (req, res) => {
     }
 });
 
+
 app.get("/participants", async (req, res) => {
     try {
         const participants = await db.collection("participants").find().toArray();
@@ -71,11 +72,11 @@ app.get("/participants", async (req, res) => {
 
 
 app.post("/messages", async (req, res) => {
-    const { from } = req.headers.user;
+    const { user } = req.headers.user;
     const { to, text, type } = req.body;
 
     const schemaUser = Joi.object({
-        from: Joi.string().required()
+        user: Joi.string().required()
     });
 
     const validateUser = schemaUser.validate(req.headers.user, { abortEarly: false });
@@ -103,7 +104,7 @@ app.post("/messages", async (req, res) => {
         if (!searchUser) return res.status(422).send("User doesn't exist");
 
         await db.collection("messages").insertOne({
-            from: from,
+            from: user,
             to: to,
             text: text,
             type: type,
@@ -179,7 +180,7 @@ app.post("/status", async (req, res) => {
     }
 });
 
-
+/*
 setInterval(async () => {
     try {
         const participants = await db.collection("participants").find().toArray();
@@ -199,7 +200,7 @@ setInterval(async () => {
         res.status(500).send(err.message);
     }
 }, 15000);
-
+*/
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
