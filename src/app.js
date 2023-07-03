@@ -119,7 +119,7 @@ app.post("/status", async (req, res) => {
         const nameSearch = await db.collection("participants").findOne({ name: user });
         if (!nameSearch) return res.status(404).send("User doesn't exist");
 
-        await db.collection("status").updateOne(
+        await db.collection("participants").updateOne(
             { name: user },
             { $set: { lastStatus: Date.now() } }
         );
@@ -132,22 +132,20 @@ app.post("/status", async (req, res) => {
 
 setInterval(async () => {
     try {
-        const participants = await db.collection("participants").find().toArray();
-        for (let i = 0; i < participants.length; i++) {
-            if (participants[i].lastStatus > Date.now() - 10000) {
-                await db.collection("participants").deleteOne({ name: participants[i].name });
-                await db.collection("messages").insertOne({
-                    from: participants[i].name,
-                    to: 'Todos',
-                    text: 'sai da sala...',
-                    type: 'status',
-                    time: dayjs().format('HH:mm:ss')
-                });
-            }
+        const participants = await db.collection("participants").find({ lastStatus: {$lte: Date.now() - 10000 } }).toArray();
+        participants.forEach( async (user) => {
+            await db.collection("participants").deleteOne({ name: user.name });
+            await db.collection("messages").insertOne({
+                from: user.name,
+                to: 'Todos',
+                text: 'sai da sala...',
+                type: 'status',
+                time: dayjs().format('HH:mm:ss')
+            });
+        });
+        } catch (err) {
+            res.status(500).send(err.message);
         }
-    } catch (err) {
-        res.status(500).send(err.message);
-    }
 }, 15000);
 
 
