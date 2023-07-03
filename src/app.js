@@ -99,12 +99,9 @@ app.post("/messages", async (req, res) => {
 
 app.get("/messages", async (req, res) => {
     const user = req.headers.user;
-    const limit  = parseInt(req.query.limit);
+    const limit = parseInt(req.query.limit);
 
-    const schemaLimit = Joi.object({ limit: Joi.number().integer().min(1) });
-
-    const validateLimit = schemaLimit(req.query, { abortEarly: false });
-    if (validateLimit.error) return res.status(422).send("Invalid limit");
+    if (limit < 1) return res.status(422).send("Invalid limit");
 
     try {
         const messages = await db.collection("messages").find({ $or: [{ from: user }, { to: user }, { to: 'Todos' }] }).limit(limit).toArray();
