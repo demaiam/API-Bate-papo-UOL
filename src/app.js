@@ -116,7 +116,7 @@ app.get("/messages", async (req, res) => {
 
 
 app.post("/status", async (req, res) => {
-    const { user } = req.headers;
+    const user = req.headers.user;
 
     try {
         const nameSearch = await db.collection("participants").findOne({ name: user });
