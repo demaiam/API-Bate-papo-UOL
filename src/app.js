@@ -37,10 +37,10 @@ app.post("/participants", async (req, res) => {
         return res.status(422).send(errors);
     }
 
-    const nameSearch = await db.collection("participants").findOne({ name: name });
-    if (nameSearch) return res.status(409).send("User already exists");
-
     try {
+        const nameSearch = await db.collection("participants").findOne({ name: name });
+        if (nameSearch) return res.status(409).send("User already exists");
+
         await db.collection("participants").insertOne({
             name: name,
             lastStatus: Date.now()
@@ -71,22 +71,19 @@ app.get("/participants", async (req, res) => {
 
 
 app.post("/messages", async (req, res) => {
-    const { from } = req.headers;
+    const { from } = req.headers.user;
     const { to, text, type } = req.body;
 
     const schemaUser = Joi.object({
         from: Joi.string().required()
     });
 
-    const validateUser = schemaUser.validate(req.headers, { abortEarly: false });
+    const validateUser = schemaUser.validate(req.headers.user, { abortEarly: false });
 
     if (validateUser.error) {
         const errors = validateUser.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
-
-    const searchUser = await db.collection("participants").findOne({ name: from });
-    if (!searchUser) return res.status(422).send("User doesn't exist");
 
     const schemaMessage = Joi.object({
         to: Joi.string().required(),
@@ -102,6 +99,9 @@ app.post("/messages", async (req, res) => {
     }
 
     try {
+        const searchUser = await db.collection("participants").findOne({ name: from });
+        if (!searchUser) return res.status(422).send("User doesn't exist");
+
         await db.collection("messages").insertOne({
             from: from,
             to: to,
@@ -117,14 +117,14 @@ app.post("/messages", async (req, res) => {
 
 
 app.get("/messages", async (req, res) => {
-    const { user } = req.headers;
+    const { user } = req.headers.user;
     const { limit } = parseInt(req.query);
 
     const schemaUser = Joi.object({
         user: Joi.string().required()
     });
 
-    const validateUser = schemaUser.validate(req.headers, { abortEarly: false });
+    const validateUser = schemaUser.validate(req.headers.user, { abortEarly: false });
 
     if (validateUser.error) {
         const errors = validateUser.error.details.map(detail => detail.message);
@@ -152,27 +152,27 @@ app.get("/messages", async (req, res) => {
 
 
 app.post("/status", async (req, res) => {
-    const { user } = req.headers;
+    const { user } = req.headers.user;
     
     const schemaUser = Joi.object({
         user: Joi.string().required()
     });
 
-    const validateUser = schemaUser.validate(req.headers, { abortEarly: false });
+    const validateUser = schemaUser.validate(req.headers.user, { abortEarly: false });
 
     if (validateUser.error) {
         const errors = validateUser.error.details.map(detail => detail.message);
         return res.status(422).send(errors);
     }
 
-    const nameSearch = await db.collection("participants").findOne({ name: user });
-    if (!nameSearch) return res.status(404).send("User doesn't exist");
-
     try {
-        await db.collection("status").updateOne({
-            name: user,
-            $set: { lastStatus: Date.now() } 
-        });
+        const nameSearch = await db.collection("participants").findOne({ name: user });
+        if (!nameSearch) return res.status(404).send("User doesn't exist");
+
+        await db.collection("status").updateOne(
+            { name: user },
+            { $set: { lastStatus: Date.now() } } 
+        );
         res.sendStatus(200);
     } catch (err) {
         res.status(500).send(err.message);
@@ -181,18 +181,22 @@ app.post("/status", async (req, res) => {
 
 
 setInterval(async () => {
-    const participants = await db.collection("participants").find().toArray();
-    for (let i = 0; i < participants.length; i++) {
-        if (participants[i].lastStatus > Date.now() - 10000) {
-            await db.collection("participants").delete({ name: participants[i].name });
-            await db.collection("messages").insertOne({
-                from: participants[i].name,
-                to: 'Todos',
-                text: 'sai da sala...',
-                type: 'status',
-                time: dayjs().format('HH:mm:ss')
-            });
+    try {
+        const participants = await db.collection("participants").find().toArray();
+        for (let i = 0; i < participants.length; i++) {
+            if (participants[i].lastStatus > Date.now() - 10000) {
+                await db.collection("participants").delete({ name: participants[i].name });
+                await db.collection("messages").insertOne({
+                    from: participants[i].name,
+                    to: 'Todos',
+                    text: 'sai da sala...',
+                    type: 'status',
+                    time: dayjs().format('HH:mm:ss')
+                });
+            }
         }
+    } catch (err) {
+        res.status(500).send(err.message);
     }
 }, 15000);
 
