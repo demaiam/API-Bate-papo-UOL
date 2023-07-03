@@ -24,10 +24,10 @@ const db = mongoClient.db();
 
 
 app.post("/participants", async (req, res) => {
-    const { user } = req.body;
+    const { name } = req.body;
 
     const schemaName = Joi.object({ 
-        user: Joi.string().required() 
+        name: Joi.string().required() 
     });
 
     const validateName = schemaName.validate(req.body, { abortEarly: false });
@@ -38,16 +38,16 @@ app.post("/participants", async (req, res) => {
     }
 
     try {
-        const nameSearch = await db.collection("participants").findOne({ name: user });
+        const nameSearch = await db.collection("participants").findOne({ name: name });
         if (nameSearch) return res.status(409).send("User already exists");
 
         await db.collection("participants").insertOne({
-            name: user,
+            name: name,
             lastStatus: Date.now()
         });
 
         await db.collection("messages").insertOne({
-            from: user,
+            from: name,
             to: 'Todos',
             text: 'entra na sala...',
             type: 'status',
@@ -75,16 +75,7 @@ app.post("/messages", async (req, res) => {
     const { user } = req.headers.user;
     const { to, text, type } = req.body;
 
-    const schemaUser = Joi.object({
-        user: Joi.string().required()
-    });
-
-    const validateUser = schemaUser.validate(req.headers.user, { abortEarly: false });
-
-    if (validateUser.error) {
-        const errors = validateUser.error.details.map(detail => detail.message);
-        return res.status(422).send(errors);
-    }
+    if (!user || user == '') return res.status(422).send("Invalid user");
 
     const schemaMessage = Joi.object({
         to: Joi.string().required(),
@@ -100,7 +91,7 @@ app.post("/messages", async (req, res) => {
     }
 
     try {
-        const searchUser = await db.collection("participants").findOne({ name: from });
+        const searchUser = await db.collection("participants").findOne({ name: user });
         if (!searchUser) return res.status(422).send("User doesn't exist");
 
         await db.collection("messages").insertOne({
@@ -121,16 +112,7 @@ app.get("/messages", async (req, res) => {
     const { user } = req.headers.user;
     const { limit } = parseInt(req.query);
 
-    const schemaUser = Joi.object({
-        user: Joi.string().required()
-    });
-
-    const validateUser = schemaUser.validate(req.headers.user, { abortEarly: false });
-
-    if (validateUser.error) {
-        const errors = validateUser.error.details.map(detail => detail.message);
-        return res.status(422).send(errors);
-    }
+    if (!user || user == '') return res.status(422).send("Invalid user");
     
     const schemaLimit = Joi.object({
         limit: Joi.number().integer().min(1)
