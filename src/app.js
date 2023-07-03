@@ -101,7 +101,7 @@ app.get("/messages", async (req, res) => {
     const user = req.headers.user;
     const limit = parseInt(req.query.limit);
 
-    if (limit < 1) return res.status(422).send("Invalid limit");
+    if (isNaN(limit) || limit < 1) return res.status(422).send("Invalid limit");
 
     try {
         const messages = await db.collection("messages").find({ $or: [{ from: user }, { to: user }, { to: 'Todos' }] }).limit(limit).toArray();
@@ -129,13 +129,13 @@ app.post("/status", async (req, res) => {
     }
 });
 
-/*
+
 setInterval(async () => {
     try {
         const participants = await db.collection("participants").find().toArray();
         for (let i = 0; i < participants.length; i++) {
             if (participants[i].lastStatus > Date.now() - 10000) {
-                await db.collection("participants").delete({ name: participants[i].name });
+                await db.collection("participants").deleteOne({ name: participants[i].name });
                 await db.collection("messages").insertOne({
                     from: participants[i].name,
                     to: 'Todos',
@@ -149,7 +149,7 @@ setInterval(async () => {
         res.status(500).send(err.message);
     }
 }, 15000);
-*/
+
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
