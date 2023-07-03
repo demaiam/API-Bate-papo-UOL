@@ -98,8 +98,8 @@ app.post("/messages", async (req, res) => {
 
 
 app.get("/messages", async (req, res) => {
-    const { user } = req.headers;
-    const { limit } = parseInt(req.query);
+    const user = req.headers.user;
+    const limit  = parseInt(req.query.limit);
 
     const schemaLimit = Joi.object({ limit: Joi.number().integer().min(1) });
 
