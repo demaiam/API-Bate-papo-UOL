@@ -26,7 +26,10 @@ const db = mongoClient.db();
 app.post("/participants", async (req, res) => {
     const { name } = req.body;
 
-    if (!name) return res.status(422).send("Invalid user");
+    const schemaName = Joi.object({ name: Joi.string().required() });
+    const validateName = schemaName.validate(req.body, { abortEarly: false });
+
+    if (validateName.error) return res.status(422).send("Invalid name");
 
     try {
         const nameSearch = await db.collection("participants").findOne({ name: name });
@@ -63,11 +66,13 @@ app.get("/participants", async (req, res) => {
 
 
 app.post("/messages", async (req, res) => {
-    const { user } = req.headers.user;
-
+    const user = req.headers.user;
     const { to, text, type } = req.body;
 
-    if (!user) return res.status(422).send("Invalid user");
+    const schemaUser = Joi.object({ user: Joi.string().required() });
+    const validateUser = schemaUser.validate(req.body, { abortEarly: false });
+
+    if (validateUser.error) return res.status(422).send("Invalid user");
 
     const schemaMessage = Joi.object({
         to: Joi.string().required(),
@@ -77,10 +82,7 @@ app.post("/messages", async (req, res) => {
 
     const validateMessage = schemaMessage.validate(req.body, { abortEarly: false });
 
-    if (validateMessage.error) {
-        const errors = validateMessage.error.details.map(detail => detail.message);
-        return res.status(422).send(errors);
-    }
+    if (validateMessage.error) return res.status(422).send("Invalid message");
 
     try {
         const searchUser = await db.collection("participants").findOne({ name: user });
@@ -101,21 +103,20 @@ app.post("/messages", async (req, res) => {
 
 
 app.get("/messages", async (req, res) => {
-    const { user } = req.headers.user;
-    const { limit } = parseInt(req.query);
+    const user = req.headers.user;
+    const limit = parseInt(req.query);
 
-    if (!user) return res.status(422).send("Invalid user");
+    const schemaUser = Joi.object({ user: Joi.string().required() });
+    const validateUser = schemaUser.validate(req.body, { abortEarly: false });
+
+    if (validateUser.error) return res.status(422).send("Invalid user");
 
     const schemaLimit = Joi.object({
         limit: Joi.number().integer().min(1)
     });
 
     const validateLimit = schemaLimit(req.query, { abortEarly: false });
-
-    if (validateLimit.error) {
-        const errors = validateLimit.error.details.map(detail => detail.message);
-        return res.status(422).send(errors);
-    }
+    if (validateLimit.error) return res.status(422).send("Invalid limit");
 
     try {
         const messages = await db.collection("messages").find({ $or: [{ from: user }, { to: user }, { type: 'message' }] }).limit(limit).toArray();
@@ -127,9 +128,12 @@ app.get("/messages", async (req, res) => {
 
 
 app.post("/status", async (req, res) => {
-    const { user } = req.headers.user;
+    const user = req.headers.user;
 
-    if (!user) return res.status(422).send("Invalid user");
+    const schemaUser = Joi.object({ user: Joi.string().required() });
+    const validateUser = schemaUser.validate(req.body, { abortEarly: false });
+
+    if (validateUser.error) return res.status(422).send("Invalid user");
 
     try {
         const nameSearch = await db.collection("participants").findOne({ name: user });
